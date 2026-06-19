@@ -1,8 +1,15 @@
 import { PrismaClient } from "@prisma/client"
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3"
+import { PrismaLibSql } from "@prisma/adapter-libsql"
 
-const adapter = new PrismaBetterSqlite3({
-  url: process.env.DATABASE_URL ?? "file:./dev.db",
-})
+let prisma: PrismaClient
 
-export const prisma = new PrismaClient({ adapter })
+function getPrisma(): PrismaClient {
+  if (!prisma) {
+    const url = process.env.DATABASE_URL ?? "file:./prisma/dev.db"
+    const adapter = new PrismaLibSql({ url })
+    prisma = new PrismaClient({ adapter })
+  }
+  return prisma
+}
+
+export const db = getPrisma()

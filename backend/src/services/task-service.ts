@@ -1,5 +1,6 @@
 import * as taskStore from "../store/task-store"
 import type { Task, PaginatedResponse, TaskFilters } from "../types"
+import { toTask } from "../types"
 
 export async function listTasks(filters: TaskFilters): Promise<PaginatedResponse> {
   const page = Math.max(1, filters.page ?? 1)
@@ -23,7 +24,7 @@ export async function listTasks(filters: TaskFilters): Promise<PaginatedResponse
   ])
 
   return {
-    tasks: tasks as Task[],
+    tasks: tasks.map(toTask),
     total,
     page,
     limit,
@@ -32,7 +33,8 @@ export async function listTasks(filters: TaskFilters): Promise<PaginatedResponse
 }
 
 export async function getTask(id: number): Promise<Task | null> {
-  return taskStore.findById(id) as Promise<Task | null>
+  const task = await taskStore.findById(id)
+  return task ? toTask(task) : null
 }
 
 export async function createTask(data: {
@@ -42,11 +44,13 @@ export async function createTask(data: {
 }): Promise<Task> {
   const dueDate = data.dueDate ? new Date(data.dueDate) : undefined
 
-  return taskStore.create({
+  const task = await taskStore.create({
     title: data.title.trim(),
     description: data.description?.trim() || undefined,
     dueDate,
-  }) as Promise<Task>
+  })
+
+  return toTask(task)
 }
 
 export async function updateTask(
@@ -68,14 +72,16 @@ export async function updateTask(
   if (data.completed !== undefined) updateData.completed = data.completed
   if (data.dueDate !== undefined) updateData.dueDate = data.dueDate ? new Date(data.dueDate) : null
 
-  return taskStore.update(id, updateData) as Promise<Task>
+  const task = await taskStore.update(id, updateData)
+  return toTask(task)
 }
 
 export async function toggleTask(id: number, completed: boolean): Promise<Task | null> {
   const existing = await taskStore.findById(id)
   if (!existing) return null
 
-  return taskStore.update(id, { completed }) as Promise<Task>
+  const task = await taskStore.update(id, { completed })
+  return toTask(task)
 }
 
 export async function deleteTask(id: number): Promise<boolean> {
