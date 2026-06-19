@@ -12,8 +12,12 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  background-color: #f8fafc;
+}
+
 body {
-  background: var(--background);
+  background-color: #f8fafc;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }

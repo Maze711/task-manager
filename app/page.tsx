@@ -38,7 +38,7 @@ export default function Home() {
     setLoading(true)
     setError(null)
     try {
-      const params: Record<string, string | number> = { page, limit: 10 }
+      const params: Record<string, string | number> = { page, limit: 5 }
       if (search) params.search = search
       if (status !== "all") params.status = status
       const res = await axios.get("/api/tasks", { params })
@@ -157,7 +157,7 @@ export default function Home() {
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       <Modal open={showNewModal} onClose={() => setShowNewModal(false)} title="Create Task">
-        <TaskForm onSubmit={handleCreate} isSubmitting={submitting} />
+        <TaskForm onSubmit={handleCreate} isSubmitting={submitting} onCancel={() => setShowNewModal(false)} />
       </Modal>
 
       <Modal
@@ -175,6 +175,7 @@ export default function Home() {
             }}
             onSubmit={handleUpdate}
             isSubmitting={submitting}
+            onCancel={() => setEditingTask(null)}
           />
         )}
       </Modal>
