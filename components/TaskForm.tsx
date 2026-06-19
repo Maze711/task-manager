@@ -13,9 +13,10 @@ type TaskFormProps = {
   initialData?: Partial<TaskFormData>
   onSubmit: (data: TaskFormData) => Promise<void>
   isSubmitting?: boolean
+  onCancel?: () => void
 }
 
-export default function TaskForm({ initialData, onSubmit, isSubmitting = false }: TaskFormProps) {
+export default function TaskForm({ initialData, onSubmit, isSubmitting = false, onCancel }: TaskFormProps) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
 
@@ -98,7 +99,7 @@ export default function TaskForm({ initialData, onSubmit, isSubmitting = false }
         </button>
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={() => (onCancel ? onCancel() : router.back())}
           className="rounded-xl border border-gray-300 bg-white px-6 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
         >
           Cancel

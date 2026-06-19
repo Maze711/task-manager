@@ -15,6 +15,11 @@ export default function SearchBar({
 }: SearchBarProps) {
   const [input, setInput] = useState(value)
   const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const onChangeRef = useRef(onChange)
+
+  useEffect(() => {
+    onChangeRef.current = onChange
+  }, [onChange])
 
   useEffect(() => {
     setInput(value)
@@ -22,11 +27,11 @@ export default function SearchBar({
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => onChange(input), 300)
+    timerRef.current = setTimeout(() => onChangeRef.current(input), 300)
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
-  }, [input, onChange])
+  }, [input])
 
   return (
     <div className="relative">
