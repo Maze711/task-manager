@@ -1,122 +1,71 @@
 "use client"
 
-import { useEffect, useState, useCallback, useRef } from "react"
-import axios from "axios"
+import { useCallback, useState } from "react"
 import SearchBar from "@/components/SearchBar"
 import FilterBar from "@/components/FilterBar"
 import TaskList from "@/components/TaskList"
 import TaskForm from "@/components/TaskForm"
 import Modal from "@/components/Modal"
 import Pagination from "@/components/Pagination"
-import type { FilterStatus } from "@/components/FilterBar"
-
-type Task = {
-  id: number
-  title: string
-  description: string | null
-  completed: boolean
-  dueDate: string | null
-}
+import { useTasks, useCreateTask, useUpdateTask, useToggleTask, useDeleteTask } from "@/lib/services/task.service"
+import type { Task, FilterStatus } from "@/lib/services/task.service"
 
 export default function Home() {
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [status, setStatus] = useState<FilterStatus>("all")
   const [page, setPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const searchRef = useRef(search)
-  const statusRef = useRef(status)
 
   const [showNewModal, setShowNewModal] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [deletingTask, setDeletingTask] = useState<Task | null>(null)
-  const [submitting, setSubmitting] = useState(false)
 
-  const fetchTasks = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const params: Record<string, string | number> = { page, limit: 5 }
-      if (search) params.search = search
-      if (status !== "all") params.status = status
-      const res = await axios.get("/api/tasks", { params })
-      setTasks(res.data.tasks)
-      setTotalPages(res.data.totalPages)
-    } catch {
-      setError("Failed to load tasks. Please try again.")
-    } finally {
-      setLoading(false)
-    }
-  }, [search, status, page])
-
-  useEffect(() => {
-    fetchTasks()
-  }, [fetchTasks])
+  const { data, isLoading, error } = useTasks(search, status, page)
+  const createTask = useCreateTask()
+  const updateTask = useUpdateTask()
+  const toggleTask = useToggleTask()
+  const deleteTask = useDeleteTask()
 
   function handleSearchChange(val: string) {
-    searchRef.current = val
     setSearch(val)
     setPage(1)
   }
 
   function handleStatusChange(val: FilterStatus) {
-    statusRef.current = val
     setStatus(val)
     setPage(1)
   }
 
-  async function handleToggle(id: number, completed: boolean) {
-    try {
-      await axios.patch(`/api/tasks/${id}`, { completed })
-      setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, completed } : t)))
-    } catch {
-      setError("Failed to update task.")
-    }
+  function handleToggle(id: number, completed: boolean) {
+    toggleTask.mutate({ id, completed })
   }
 
   async function handleCreate(data: { title: string; description: string; dueDate: string }) {
-    setSubmitting(true)
-    try {
-      const res = await axios.post("/api/tasks", {
-        title: data.title,
-        description: data.description || undefined,
-        dueDate: data.dueDate || undefined,
-      })
-      setTasks((prev) => [res.data, ...prev])
-      setShowNewModal(false)
-    } finally {
-      setSubmitting(false)
-    }
+    await createTask.mutateAsync({
+      title: data.title,
+      description: data.description || undefined,
+      dueDate: data.dueDate || undefined,
+    })
+    setShowNewModal(false)
   }
 
   async function handleUpdate(data: { title: string; description: string; dueDate: string }) {
     if (!editingTask) return
-    setSubmitting(true)
-    try {
-      const res = await axios.put(`/api/tasks/${editingTask.id}`, {
+    await updateTask.mutateAsync({
+      id: editingTask.id,
+      data: {
         title: data.title,
         description: data.description || undefined,
         completed: editingTask.completed,
         dueDate: data.dueDate || undefined,
-      })
-      setTasks((prev) => prev.map((t) => (t.id === editingTask.id ? res.data : t)))
-      setEditingTask(null)
-    } finally {
-      setSubmitting(false)
-    }
+      },
+    })
+    setEditingTask(null)
   }
 
   async function handleDelete() {
     if (!deletingTask) return
-    try {
-      await axios.delete(`/api/tasks/${deletingTask.id}`)
-      setTasks((prev) => prev.filter((t) => t.id !== deletingTask.id))
-      setDeletingTask(null)
-    } catch {
-      setError("Failed to delete task.")
-    }
+    await deleteTask.mutateAsync(deletingTask.id)
+    setDeletingTask(null)
   }
 
   return (
@@ -146,18 +95,18 @@ export default function Home() {
       </div>
 
       <TaskList
-        tasks={tasks}
-        loading={loading}
-        error={error}
+        tasks={data?.tasks ?? []}
+        loading={isLoading}
+        error={error instanceof Error ? error.message : null}
         onToggle={handleToggle}
-        onEdit={setEditingTask}
-        onDeleteClick={setDeletingTask}
+        onEdit={(task) => setEditingTask(task)}
+        onDeleteClick={(task) => setDeletingTask(task)}
       />
 
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      <Pagination page={page} totalPages={data?.totalPages ?? 1} onPageChange={setPage} />
 
       <Modal open={showNewModal} onClose={() => setShowNewModal(false)} title="Create Task">
-        <TaskForm onSubmit={handleCreate} isSubmitting={submitting} onCancel={() => setShowNewModal(false)} />
+        <TaskForm onSubmit={handleCreate} isSubmitting={createTask.isPending} onCancel={() => setShowNewModal(false)} />
       </Modal>
 
       <Modal
@@ -174,7 +123,7 @@ export default function Home() {
               dueDate: editingTask.dueDate ? editingTask.dueDate.split("T")[0] : "",
             }}
             onSubmit={handleUpdate}
-            isSubmitting={submitting}
+            isSubmitting={updateTask.isPending}
             onCancel={() => setEditingTask(null)}
           />
         )}
@@ -199,9 +148,10 @@ export default function Home() {
           <button
             type="button"
             onClick={handleDelete}
-            className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
+            disabled={deleteTask.isPending}
+            className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Delete
+            {deleteTask.isPending ? "Deleting..." : "Delete"}
           </button>
         </div>
       </Modal>

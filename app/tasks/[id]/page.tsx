@@ -1,86 +1,49 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import axios from "axios"
+import { useParams, useRouter } from "next/navigation"
 import StatusBadge from "@/components/StatusBadge"
 import TaskForm from "@/components/TaskForm"
 import Modal from "@/components/Modal"
-
-type Task = {
-  id: number
-  title: string
-  description: string | null
-  completed: boolean
-  dueDate: string | null
-}
+import { useTask, useUpdateTask, useToggleTask, useDeleteTask } from "@/lib/services/task.service"
+import { useState } from "react"
 
 export default function TaskDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const [task, setTask] = useState<Task | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const id = Number(params.id)
+
+  const { data: task, isLoading, error } = useTask(id)
+  const updateTask = useUpdateTask()
+  const toggleTask = useToggleTask()
+  const deleteTask = useDeleteTask()
 
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await axios.get(`/api/tasks/${params.id}`)
-        setTask(res.data)
-      } catch {
-        setError("Task not found.")
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [params.id])
 
   async function handleToggle() {
     if (!task) return
-    try {
-      const res = await axios.patch(`/api/tasks/${task.id}`, { completed: !task.completed })
-      setTask(res.data)
-    } catch {
-      setError("Failed to update task.")
-    }
+    await toggleTask.mutateAsync({ id: task.id, completed: !task.completed })
   }
 
   async function handleUpdate(data: { title: string; description: string; dueDate: string }) {
     if (!task) return
-    setSubmitting(true)
-    try {
-      const res = await axios.put(`/api/tasks/${task.id}`, {
+    await updateTask.mutateAsync({
+      id: task.id,
+      data: {
         title: data.title,
         description: data.description || undefined,
         completed: task.completed,
         dueDate: data.dueDate || undefined,
-      })
-      setTask(res.data)
-      setShowEditModal(false)
-    } finally {
-      setSubmitting(false)
-    }
+      },
+    })
+    setShowEditModal(false)
   }
 
   async function handleDelete() {
     if (!task) return
-    setDeleting(true)
-    try {
-      await axios.delete(`/api/tasks/${task.id}`)
-      router.push("/")
-      router.refresh()
-    } catch {
-      setError("Failed to delete task.")
-      setDeleting(false)
-      setShowDeleteModal(false)
-    }
+    await deleteTask.mutateAsync(task.id)
+    router.push("/")
   }
 
   function formatDate(dateStr: string | null) {
@@ -93,7 +56,7 @@ export default function TaskDetailPage() {
     })
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-8">
         <div className="animate-pulse space-y-4">
@@ -108,7 +71,7 @@ export default function TaskDetailPage() {
   if (error || !task) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <p className="text-lg font-medium text-gray-700">{error || "Task not found."}</p>
+        <p className="text-lg font-medium text-gray-700">{error instanceof Error ? error.message : "Task not found."}</p>
         <Link href="/" className="mt-4 inline-block text-sm text-blue-600 hover:underline">
           Back to tasks
         </Link>
@@ -160,7 +123,8 @@ export default function TaskDetailPage() {
           <button
             type="button"
             onClick={handleToggle}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
+            disabled={toggleTask.isPending}
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
               task.completed
                 ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 : "bg-green-600 text-white hover:bg-green-700"
@@ -196,7 +160,8 @@ export default function TaskDetailPage() {
             dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
           }}
           onSubmit={handleUpdate}
-          isSubmitting={submitting}
+          isSubmitting={updateTask.isPending}
+          onCancel={() => setShowEditModal(false)}
         />
       </Modal>
 
@@ -216,10 +181,10 @@ export default function TaskDetailPage() {
           <button
             type="button"
             onClick={handleDelete}
-            disabled={deleting}
+            disabled={deleteTask.isPending}
             className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
           >
-            {deleting ? "Deleting..." : "Delete"}
+            {deleteTask.isPending ? "Deleting..." : "Delete"}
           </button>
         </div>
       </Modal>
