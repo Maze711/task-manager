@@ -1,6 +1,6 @@
 "use client"
 
-export type FilterStatus = "all" | "active" | "inactive"
+import type { FilterStatus } from "@/lib/services/task.service"
 
 type FilterBarProps = {
   value: FilterStatus

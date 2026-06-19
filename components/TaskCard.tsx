@@ -1,14 +1,7 @@
 "use client"
 
 import StatusBadge from "./StatusBadge"
-
-type Task = {
-  id: number
-  title: string
-  description: string | null
-  completed: boolean
-  dueDate: string | null
-}
+import type { Task } from "@/lib/services/task.service"
 
 type TaskCardProps = {
   task: Task

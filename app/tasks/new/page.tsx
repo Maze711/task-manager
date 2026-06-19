@@ -1,21 +1,21 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import axios from "axios"
-import TaskForm from "@/components/TaskForm"
 import Link from "next/link"
+import TaskForm from "@/components/TaskForm"
+import { useCreateTask } from "@/lib/services/task.service"
 
 export default function NewTaskPage() {
   const router = useRouter()
+  const createTask = useCreateTask()
 
   async function handleSubmit(data: { title: string; description: string; dueDate: string }) {
-    await axios.post("/api/tasks", {
+    await createTask.mutateAsync({
       title: data.title,
       description: data.description || undefined,
       dueDate: data.dueDate || undefined,
     })
     router.push("/")
-    router.refresh()
   }
 
   return (
@@ -30,7 +30,7 @@ export default function NewTaskPage() {
         <h1 className="mt-2 text-xl font-bold text-gray-900">Create Task</h1>
       </div>
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <TaskForm onSubmit={handleSubmit} />
+        <TaskForm onSubmit={handleSubmit} isSubmitting={createTask.isPending} />
       </div>
     </div>
   )

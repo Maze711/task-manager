@@ -1,52 +1,33 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
-import axios from "axios"
 import TaskForm from "@/components/TaskForm"
-
-type Task = {
-  id: number
-  title: string
-  description: string | null
-  completed: boolean
-  dueDate: string | null
-}
+import { useTask, useUpdateTask } from "@/lib/services/task.service"
 
 export default function EditTaskPage() {
   const params = useParams()
   const router = useRouter()
-  const [task, setTask] = useState<Task | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const id = Number(params.id)
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const res = await axios.get(`/api/tasks/${params.id}`)
-        setTask(res.data)
-      } catch {
-        setError("Task not found.")
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [params.id])
+  const { data: task, isLoading, error } = useTask(id)
+  const updateTask = useUpdateTask()
 
   async function handleSubmit(data: { title: string; description: string; dueDate: string }) {
-    await axios.put(`/api/tasks/${params.id}`, {
-      title: data.title,
-      description: data.description || undefined,
-      completed: task?.completed ?? false,
-      dueDate: data.dueDate || undefined,
+    if (!task) return
+    await updateTask.mutateAsync({
+      id: task.id,
+      data: {
+        title: data.title,
+        description: data.description || undefined,
+        completed: task.completed,
+        dueDate: data.dueDate || undefined,
+      },
     })
     router.push("/")
-    router.refresh()
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-8">
         <div className="animate-pulse space-y-4">
@@ -61,7 +42,7 @@ export default function EditTaskPage() {
   if (error || !task) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <p className="text-lg font-medium text-gray-700">{error || "Task not found."}</p>
+        <p className="text-lg font-medium text-gray-700">{error instanceof Error ? error.message : "Task not found."}</p>
         <Link href="/" className="mt-4 inline-block text-sm text-blue-600 hover:underline">
           Back to tasks
         </Link>
@@ -88,6 +69,7 @@ export default function EditTaskPage() {
             dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
           }}
           onSubmit={handleSubmit}
+          isSubmitting={updateTask.isPending}
         />
       </div>
     </div>

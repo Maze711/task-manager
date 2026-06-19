@@ -14,7 +14,7 @@ export default function SearchBar({
   placeholder = "Search tasks...",
 }: SearchBarProps) {
   const [input, setInput] = useState(value)
-  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const onChangeRef = useRef(onChange)
 
   useEffect(() => {

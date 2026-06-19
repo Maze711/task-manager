@@ -2,14 +2,7 @@
 
 import TaskCard from "./TaskCard"
 import EmptyState from "./EmptyState"
-
-type Task = {
-  id: number
-  title: string
-  description: string | null
-  completed: boolean
-  dueDate: string | null
-}
+import type { Task } from "@/lib/services/task.service"
 
 type TaskListProps = {
   tasks: Task[]
