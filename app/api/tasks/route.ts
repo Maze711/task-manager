@@ -10,12 +10,12 @@ export async function GET(request: NextRequest) {
     const where: Record<string, unknown> = {}
 
     if (search) {
-      where.title = { contains: search, mode: "insensitive" }
+      where.title = { contains: search }
     }
 
     if (status === "active") {
       where.completed = false
-    } else if (status === "completed") {
+    } else if (status === "inactive") {
       where.completed = true
     }
 

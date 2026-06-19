@@ -13,7 +13,7 @@ export default function StatusBadge({ completed }: StatusBadgeProps) {
           : "bg-gray-100 text-gray-600"
       }`}
     >
-      {completed ? "Completed" : "Active"}
+      {completed ? "Completed" : "Incomplete"}
     </span>
   )
 }

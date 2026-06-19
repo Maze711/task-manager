@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
 
 type SearchBarProps = {
   value: string
@@ -13,19 +13,20 @@ export default function SearchBar({
   onChange,
   placeholder = "Search tasks...",
 }: SearchBarProps) {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [input, setInput] = useState(value)
+  const timerRef = useRef<ReturnType<typeof setTimeout>>()
 
   useEffect(() => {
+    setInput(value)
+  }, [value])
+
+  useEffect(() => {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => onChange(input), 300)
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
-  }, [])
-
-  function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value
-    if (timerRef.current) clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => onChange(val), 300)
-  }
+  }, [input, onChange])
 
   return (
     <div className="relative">
@@ -44,8 +45,8 @@ export default function SearchBar({
       </svg>
       <input
         type="text"
-        defaultValue={value}
-        onChange={handleInput}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
         placeholder={placeholder}
         className="w-full rounded-xl border border-gray-300 bg-white py-2.5 pl-10 pr-4 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
       />
