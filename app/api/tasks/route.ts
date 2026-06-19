@@ -6,6 +6,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get("search")?.trim()
     const status = searchParams.get("status")?.trim().toLowerCase()
+    const page = Math.max(1, Number(searchParams.get("page")) || 1)
+    const limit = Math.max(1, Math.min(100, Number(searchParams.get("limit")) || 10))
 
     const where: Record<string, unknown> = {}
 
@@ -19,12 +21,23 @@ export async function GET(request: NextRequest) {
       where.completed = true
     }
 
-    const tasks = await prisma.task.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-    })
+    const [tasks, total] = await Promise.all([
+      prisma.task.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.task.count({ where }),
+    ])
 
-    return NextResponse.json(tasks)
+    return NextResponse.json({
+      tasks,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    })
   } catch {
     return NextResponse.json({ error: "Failed to fetch tasks" }, { status: 500 })
   }

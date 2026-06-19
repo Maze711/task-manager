@@ -1,12 +1,13 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import axios from "axios"
 import SearchBar from "@/components/SearchBar"
 import FilterBar from "@/components/FilterBar"
 import TaskList from "@/components/TaskList"
 import TaskForm from "@/components/TaskForm"
 import Modal from "@/components/Modal"
+import Pagination from "@/components/Pagination"
 import type { FilterStatus } from "@/components/FilterBar"
 
 type Task = {
@@ -23,6 +24,10 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [status, setStatus] = useState<FilterStatus>("all")
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const searchRef = useRef(search)
+  const statusRef = useRef(status)
 
   const [showNewModal, setShowNewModal] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
@@ -33,21 +38,34 @@ export default function Home() {
     setLoading(true)
     setError(null)
     try {
-      const params: Record<string, string> = {}
+      const params: Record<string, string | number> = { page, limit: 10 }
       if (search) params.search = search
       if (status !== "all") params.status = status
       const res = await axios.get("/api/tasks", { params })
-      setTasks(res.data)
+      setTasks(res.data.tasks)
+      setTotalPages(res.data.totalPages)
     } catch {
       setError("Failed to load tasks. Please try again.")
     } finally {
       setLoading(false)
     }
-  }, [search, status])
+  }, [search, status, page])
 
   useEffect(() => {
     fetchTasks()
   }, [fetchTasks])
+
+  function handleSearchChange(val: string) {
+    searchRef.current = val
+    setSearch(val)
+    setPage(1)
+  }
+
+  function handleStatusChange(val: FilterStatus) {
+    statusRef.current = val
+    setStatus(val)
+    setPage(1)
+  }
 
   async function handleToggle(id: number, completed: boolean) {
     try {
@@ -122,9 +140,9 @@ export default function Home() {
 
       <div className="mb-6 space-y-4 sm:flex sm:items-center sm:gap-4 sm:space-y-0">
         <div className="flex-1">
-          <SearchBar value={search} onChange={setSearch} />
+          <SearchBar value={search} onChange={handleSearchChange} />
         </div>
-        <FilterBar value={status} onChange={setStatus} />
+        <FilterBar value={status} onChange={handleStatusChange} />
       </div>
 
       <TaskList
@@ -135,6 +153,8 @@ export default function Home() {
         onEdit={setEditingTask}
         onDeleteClick={setDeletingTask}
       />
+
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       <Modal open={showNewModal} onClose={() => setShowNewModal(false)} title="Create Task">
         <TaskForm onSubmit={handleCreate} isSubmitting={submitting} />
