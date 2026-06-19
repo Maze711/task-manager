@@ -16,18 +16,16 @@ type TaskListProps = {
   loading: boolean
   error: string | null
   onToggle: (id: number, completed: boolean) => void
-  onDelete: (id: number) => void
+  onEdit: (task: Task) => void
+  onDeleteClick: (task: Task) => void
 }
 
-export default function TaskList({ tasks, loading, error, onToggle, onDelete }: TaskListProps) {
+export default function TaskList({ tasks, loading, error, onToggle, onEdit, onDeleteClick }: TaskListProps) {
   if (loading) {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="animate-pulse rounded-xl border border-gray-200 bg-white p-4"
-          >
+          <div key={i} className="animate-pulse rounded-xl border border-gray-200 bg-white p-4">
             <div className="flex items-center gap-3">
               <div className="h-5 w-5 rounded-full bg-gray-200" />
               <div className="flex-1 space-y-2">
@@ -57,7 +55,13 @@ export default function TaskList({ tasks, loading, error, onToggle, onDelete }: 
   return (
     <div className="grid gap-3">
       {tasks.map((task) => (
-        <TaskCard key={task.id} task={task} onToggle={onToggle} onDelete={onDelete} />
+        <TaskCard
+          key={task.id}
+          task={task}
+          onToggle={onToggle}
+          onEdit={onEdit}
+          onDeleteClick={onDeleteClick}
+        />
       ))}
     </div>
   )

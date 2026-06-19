@@ -1,6 +1,6 @@
 "use client"
 
-export type FilterStatus = "all" | "active" | "completed"
+export type FilterStatus = "all" | "active" | "inactive"
 
 type FilterBarProps = {
   value: FilterStatus
@@ -10,7 +10,7 @@ type FilterBarProps = {
 const filters: { label: string; value: FilterStatus }[] = [
   { label: "All", value: "all" },
   { label: "Active", value: "active" },
-  { label: "Completed", value: "completed" },
+  { label: "Inactive", value: "inactive" },
 ]
 
 export default function FilterBar({ value, onChange }: FilterBarProps) {

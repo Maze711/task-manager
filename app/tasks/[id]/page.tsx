@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import axios from "axios"
 import StatusBadge from "@/components/StatusBadge"
+import TaskForm from "@/components/TaskForm"
+import Modal from "@/components/Modal"
 
 type Task = {
   id: number
@@ -20,6 +22,10 @@ export default function TaskDetailPage() {
   const [task, setTask] = useState<Task | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
@@ -46,6 +52,23 @@ export default function TaskDetailPage() {
     }
   }
 
+  async function handleUpdate(data: { title: string; description: string; dueDate: string }) {
+    if (!task) return
+    setSubmitting(true)
+    try {
+      const res = await axios.put(`/api/tasks/${task.id}`, {
+        title: data.title,
+        description: data.description || undefined,
+        completed: task.completed,
+        dueDate: data.dueDate || undefined,
+      })
+      setTask(res.data)
+      setShowEditModal(false)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   async function handleDelete() {
     if (!task) return
     setDeleting(true)
@@ -56,6 +79,7 @@ export default function TaskDetailPage() {
     } catch {
       setError("Failed to delete task.")
       setDeleting(false)
+      setShowDeleteModal(false)
     }
   }
 
@@ -94,7 +118,10 @@ export default function TaskDetailPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:px-8">
-      <Link href="/" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+      <Link
+        href="/"
+        className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+      >
         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
         </svg>
@@ -105,14 +132,18 @@ export default function TaskDetailPage() {
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3">
-              <h1 className={`text-xl font-bold ${task.completed ? "text-gray-400 line-through" : "text-gray-900"}`}>
+              <h1
+                className={`text-xl font-bold ${
+                  task.completed ? "text-gray-400 line-through" : "text-gray-900"
+                }`}
+              >
                 {task.title}
               </h1>
               <StatusBadge completed={task.completed} />
             </div>
 
             {task.description && (
-              <p className="mt-3 text-gray-600 leading-relaxed">{task.description}</p>
+              <p className="mt-3 leading-relaxed text-gray-600">{task.description}</p>
             )}
 
             <div className="mt-6 space-y-2 text-sm text-gray-500">
@@ -138,23 +169,60 @@ export default function TaskDetailPage() {
             {task.completed ? "Mark Active" : "Mark Completed"}
           </button>
 
-          <Link
-            href={`/tasks/${task.id}/edit`}
+          <button
+            type="button"
+            onClick={() => setShowEditModal(true)}
             className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
           >
             Edit
-          </Link>
+          </button>
 
+          <button
+            type="button"
+            onClick={() => setShowDeleteModal(true)}
+            className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+
+      <Modal open={showEditModal} onClose={() => setShowEditModal(false)} title="Edit Task">
+        <TaskForm
+          key={task.id}
+          initialData={{
+            title: task.title,
+            description: task.description ?? "",
+            dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
+          }}
+          onSubmit={handleUpdate}
+          isSubmitting={submitting}
+        />
+      </Modal>
+
+      <Modal open={showDeleteModal} onClose={() => setShowDeleteModal(false)} title="Delete Task">
+        <p className="mb-6 text-sm text-gray-600">
+          Are you sure you want to delete <strong>&ldquo;{task.title}&rdquo;</strong>? This action
+          cannot be undone.
+        </p>
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={() => setShowDeleteModal(false)}
+            className="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+          >
+            Cancel
+          </button>
           <button
             type="button"
             onClick={handleDelete}
             disabled={deleting}
-            className="inline-flex items-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+            className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
           >
             {deleting ? "Deleting..." : "Delete"}
           </button>
         </div>
-      </div>
+      </Modal>
     </div>
   )
 }
