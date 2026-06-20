@@ -4,7 +4,7 @@ import { toTask } from "../types"
 
 export async function listTasks(filters: TaskFilters): Promise<PaginatedResponse> {
   const page = Math.max(1, filters.page ?? 1)
-  const limit = Math.max(1, Math.min(100, filters.limit ?? 10))
+  const limit = Math.max(1, Math.min(100, filters.limit ?? 5))
 
   const where: Record<string, unknown> = {}
 
