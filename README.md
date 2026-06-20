@@ -1,121 +1,141 @@
 # Task Manager
 
-A full-stack task management application built with **Next.js 16** (App Router), **TypeScript**, **Tailwind CSS**, and **Prisma ORM** with **SQLite**.
+A full-stack task management application with an **Express** REST API, **Next.js 16** frontend, **TypeScript**, **Tailwind CSS v4**, and **Prisma ORM v7** with **SQLite**.
+
+---
+
+## Why Separate `server/` and `client/` Directories?
+
+The application is split into two independent directories, each with its own `package.json`, `node_modules`, and `tsconfig`. This approach was chosen over a monolithic structure for several reasons:
+
+- **Independent dependency management** — Each layer manages its own dependencies without risk of version conflicts or hoisting issues. A frontend dependency update can never break the backend, and vice versa.
+- **Independent build, test, and deploy** — The server and client can be built, tested, and deployed separately. A frontend change does not trigger a backend rebuild, making CI/CD faster and more reliable.
+- **Clear separation of concerns** — API logic, database access, and Prisma models live entirely in `server/`. UI components, page routing, and client state live entirely in `client/`. There is no ambiguity about where code belongs.
+- **Scalable foundation** — Adding a mobile app, a background worker, or another microservice follows the same pattern: another directory with its own configuration. The root `package.json` remains a thin orchestrator using `concurrently`.
+
+---
 
 ## Features
 
 - **Create, Read, Update, Delete** tasks
 - **Mark complete / incomplete** toggle
-- **Search** tasks by title (case-insensitive)
-- **Filter** by All / Active / Inactive
-- **Combined search + filter** support
-- **Pagination** (10 tasks per page)
-- Modal-based create, edit, and delete with confirmation
-- Responsive dashboard UI with Tailwind CSS
-- Loading skeletons, empty states, and error handling
+- **Search** tasks by title (case-insensitive, debounced)
+- **Filter** by All / Active / Inactive (combinable with search)
+- **Pagination** (10 per page default, configurable up to 100)
+- **Modal-based** create, edit, and delete with confirmation
+- **Loading skeletons**, **empty states**, and **error handling**
+- **Server-side validation** on all mutations
+- **Swagger API documentation** at `/api/docs`
+- **Responsive** dashboard UI with Tailwind CSS
+
+## Tech Stack
+
+| Server (`server/`) | Client (`client/`) |
+|---|---|
+| **Express** 5.x | **Next.js** 16.2.9 |
+| **Prisma Client** ^7.8.0 | **React** 19.2.4 |
+| **Prisma CLI** ^7.8.0 | **TanStack Query** ^5.100.9 |
+| **@prisma/adapter-libsql** | **Axios** ^1.18.0 |
+| **SQLite** (via libsql) | **Tailwind CSS** v4 |
+| **swagger-jsdoc / swagger-ui-express** | **react-hot-toast** |
+| **TypeScript** | **TypeScript** |
 
 ## Architecture & Data Flow
 
-### Overview
-
 ```
-Browser (React UI)  ──axios──>  Next.js Route Handlers  ──Prisma──>  SQLite
-       │                              │                              │
-       │  GET/POST/PUT/PATCH/DELETE   │        CRUD queries          │
-       └──────────────────────────────┘──────────────────────────────┘
+ Browser (React UI)
+       │
+       │ axios (via centralized lib/api.ts)
+       ▼
+ Next.js rewrites: /api/* ──proxied to──> http://localhost:4000/api/*
+       │
+       ▼
+ Express Router
+       │
+       ▼
+ Controller (validation, request parsing, response)
+       │
+       ▼
+ Service (business logic — search, filter, paginate, CRUD)
+       │
+       ▼
+ Store (Prisma queries only)
+       │
+       ▼
+ Prisma Client (with @prisma/adapter-libsql)
+       │
+       ▼
+ SQLite (dev.db)
 ```
-
-The frontend never talks directly to the database. Every user action follows this path:
-
-1. **React component** triggers an event (click, form submit, search input)
-2. **axios** sends an HTTP request to the corresponding `/api/tasks` endpoint
-3. **Route handler** validates the input and calls Prisma Client
-4. **Prisma Client** (with `PrismaBetterSqlite3` adapter) executes the query against SQLite
-5. **Response** flows back through the same chain — the route handler returns JSON, the component updates its state
-
-### Example flows
-
-**Create a task**
-```
-TaskForm (modal)  ─POST─>  /api/tasks  ──>  prisma.task.create()
-                                                      │
-                        dashboard state  <─── 201 JSON ┘
-```
-
-**Search + filter**
-```
-SearchBar (debounced)  ─GET /api/tasks?search=...&status=active─>  prisma.task.findMany()
-         │                                                                            │
-     TaskList re-renders  <───────────────────────── JSON ────────────────────────────┘
-```
-
-**Toggle completion**
-```
-TaskCard checkbox  ─PATCH /api/tasks/:id { completed: true }─>  prisma.task.update()
-       │                                                                             │
-   optimistic UI update  <─────────────────────────── JSON ──────────────────────────┘
-```
-
-**Delete task**
-```
-Trash icon  ──>  Modal confirmation  ──>  DELETE /api/tasks/:id  ──>  prisma.task.delete()
-                                                                              │
-                                                  task removed from state <──┘
-```
-
-### Key files in the chain
-
-| File | Role |
-| ---- | ---- |
-| `lib/prisma.ts` | Singleton PrismaClient with `PrismaBetterSqlite3` adapter — database connection |
-| `app/api/tasks/route.ts` | Handles `GET` (list with search/filter) and `POST` (create) |
-| `app/api/tasks/[id]/route.ts` | Handles `GET`, `PUT`, `PATCH`, `DELETE` for a single task |
-| `app/page.tsx` | Dashboard — owns tasks state, passes callbacks to child components |
-| `components/SearchBar.tsx` | Debounces input → calls parent's `onChange` → triggers re-fetch |
-| `components/FilterBar.tsx` | Sets filter status → triggers re-fetch with combined params |
-| `components/TaskForm.tsx` | Validates and submits new/updated task data via axios |
-| `components/TaskCard.tsx` | Renders task row, emits toggle/edit/delete events upward |
-| `components/Modal.tsx` | Wraps forms and confirmations in a modal overlay |
-
-## Tech Stack
 
 ## Project Structure
 
 ```
 task-manager/
-├── app/
-│   ├── api/tasks/
-│   │   ├── route.ts            # GET (list + search/filter), POST
-│   │   └── [id]/route.ts       # GET, PUT, PATCH, DELETE
-│   ├── tasks/
-│   │   ├── new/page.tsx        # Create task page (also via modal)
-│   │   ├── [id]/page.tsx       # Task detail view
-│   │   └── [id]/edit/page.tsx  # Edit task page (also via modal)
-│   ├── layout.tsx              # Root layout
-│   ├── page.tsx                # Dashboard with modals
-│   └── globals.css             # Global styles
-├── components/
-│   ├── Modal.tsx               # Reusable modal overlay
-│   ├── SearchBar.tsx           # Debounced search input
-│   ├── FilterBar.tsx           # All / Active / Inactive filters
-│   ├── TaskCard.tsx            # Task list item with toggle/edit/delete
-│   ├── TaskList.tsx            # Task list with loading/empty/error states
-│   ├── TaskForm.tsx            # Reusable create/edit form
-│   ├── StatusBadge.tsx         # Completed (green) / Incomplete (gray) badge
-│   └── EmptyState.tsx          # Empty results illustration
-├── lib/
-│   └── prisma.ts               # PrismaClient singleton with adapter
-├── prisma/
-│   ├── schema.prisma           # Task model definition
-│   ├── seed.ts                 # Database seed script (10 sample tasks)
-│   └── migrations/             # Migration history
-├── prisma.config.ts            # Prisma CLI configuration (datasource, seed)
-├── package.json
-├── tsconfig.json
-├── next.config.ts
-├── postcss.config.mjs
-├── .env
-└── README.md
+├── server/                          # Express REST API
+│   ├── prisma/
+│   │   ├── schema.prisma            # Task model definition
+│   │   ├── seed.ts                  # Seed script (10 sample tasks)
+│   │   ├── migrations/              # SQLite migration history
+│   │   └── dev.db                   # SQLite database file (gitignored)
+│   ├── src/
+│   │   ├── config/
+│   │   │   ├── database.ts          # PrismaClient singleton with libsql adapter
+│   │   │   └── cors.ts              # CORS configuration
+│   │   ├── docs/
+│   │   │   └── swagger.ts           # Swagger UI setup
+│   │   ├── routes/
+│   │   │   ├── index.ts             # Router aggregator
+│   │   │   └── task-routes.ts       # Route definitions with @openapi JSDoc
+│   │   ├── controller/
+│   │   │   └── task-controller.ts   # Request parsing, validation, response
+│   │   ├── services/
+│   │   │   └── task-service.ts      # Business logic layer
+│   │   ├── store/
+│   │   │   └── task-store.ts        # Prisma query layer (only DB calls)
+│   │   ├── types/
+│   │   │   └── index.ts             # Shared TypeScript interfaces + toTask() mapper
+│   │   ├── utils/
+│   │   │   └── get-error-message.ts # Error extraction utility
+│   │   └── app.ts                   # Express entry point
+│   ├── prisma.config.ts             # Prisma CLI config (datasource URL, migrations, seed)
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── .env                         # DATABASE_URL + PORT
+│
+├── client/                          # Next.js frontend
+│   ├── app/
+│   │   ├── layout.tsx               # Root layout (Geist fonts, Toaster, Providers)
+│   │   ├── page.tsx                 # Dashboard — search, filter, pagination, CRUD modals
+│   │   ├── tasks/
+│   │   │   ├── new/page.tsx         # /tasks/new — standalone create page
+│   │   │   ├── [id]/page.tsx        # /tasks/:id — detail view with modals
+│   │   │   └── [id]/edit/page.tsx   # /tasks/:id/edit — standalone edit page
+│   │   └── globals.css              # Tailwind CSS v4 import
+│   ├── components/
+│   │   ├── Modal.tsx                # Reusable modal overlay
+│   │   ├── SearchBar.tsx            # Debounced search (300ms)
+│   │   ├── FilterBar.tsx            # All / Active / Inactive pills
+│   │   ├── TaskCard.tsx             # Task row with toggle, edit, delete
+│   │   ├── TaskList.tsx             # Grid with loading/error/empty states
+│   │   ├── TaskForm.tsx             # Create/edit form with validation
+│   │   ├── StatusBadge.tsx          # Completed / Incomplete badge
+│   │   ├── Pagination.tsx           # Page navigation with ellipsis
+│   │   ├── EmptyState.tsx           # Empty results illustration
+│   │   └── Providers.tsx            # TanStack Query provider
+│   ├── lib/
+│   │   ├── api.ts                   # Centralized axios instance
+│   │   ├── constant.ts              # API_URL from env
+│   │   ├── query-client.ts          # TanStack Query client config
+│   │   └── services/
+│   │       └── task.service.ts      # Hooks: useTasks, useCreateTask, useUpdateTask, etc.
+│   ├── next.config.ts               # Rewrites: /api/* -> localhost:4000/api/*
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── .env.local                   # API URLs
+│
+├── package.json                     # Root orchestrator (concurrently only)
+└── .gitignore                       # node_modules/ (any depth), .next/, *.db, .env*
 ```
 
 ## Getting Started
@@ -123,81 +143,103 @@ task-manager/
 ### Prerequisites
 
 - Node.js 20+
-- npm (or pnpm, yarn, bun)
+- npm
 
 ### Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/Maze711/task-manager.git
 cd task-manager
 
-# Install dependencies
-npm install
+# Install dependencies for both server and client
+npm install --prefix server
+npm install --prefix client
+# or: npm run install:all
 ```
 
 ### Database Setup
 
 ```bash
-# Run migrations to create the Task table
-npx prisma migrate dev --name init
+# From the server/ directory
+cd server
+
+# Generate Prisma Client
+npx prisma generate
+
+# Apply migrations to create the Task table
+npx prisma migrate deploy
 
 # (Optional) Seed the database with 10 sample tasks
 npx prisma db seed
+
+cd ..
 ```
 
 ### Development
 
 ```bash
+# From the root — starts both server (:4000) and client (:3000) concurrently
 npm run dev
+```
+
+Or start each independently:
+
+```bash
+npm run dev:server   # Express on http://localhost:4000
+npm run dev:client   # Next.js on http://localhost:3000
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## API Reference
 
-All endpoints are prefixed with `/api/tasks`.
+All endpoints are prefixed with `/api/tasks`. Every response uses `application/json`.
+
+Interactive Swagger docs are available at **http://localhost:4000/api/docs** when the server is running.
 
 ### GET /api/tasks
 
-Returns a list of tasks, with optional query parameters.
+Returns a paginated list of tasks with optional search and filter.
 
-| Query    | Type     | Default | Description                        |
-| -------- | -------- | ------- | ---------------------------------- |
-| `search` | `string` | —       | Case-insensitive title search      |
-| `status` | `string` | —       | `active` or `inactive` (omit for all) |
-| `page`   | `number` | `1`     | Page number for pagination         |
-| `limit`  | `number` | `10`    | Items per page (max 100)           |
+**Query parameters:**
 
-Returns a paginated response:
+| Param | Type | Default | Description |
+|---|---|---|---|
+| `search` | `string` | — | Case-insensitive title search (SQLite `contains`) |
+| `status` | `string` | — | `active` (incomplete) or `inactive` (completed); omit for all |
+| `page` | `number` | `1` | Page number (minimum 1) |
+| `limit` | `number` | `10` | Items per page (minimum 1, maximum 100) |
+
+**Response (200):**
 
 ```json
 {
-  "tasks": [ ... ],
-  "total": 20,
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Complete quarterly report",
+      "description": "Finish Q2 financial report",
+      "completed": false,
+      "dueDate": "2026-07-15T00:00:00.000Z",
+      "createdAt": "2026-06-19T17:23:54.218Z",
+      "updatedAt": "2026-06-19T18:36:33.102Z"
+    }
+  ],
+  "total": 10,
   "page": 1,
   "limit": 10,
-  "totalPages": 2
+  "totalPages": 1
 }
 ```
 
 **Examples:**
 
 ```bash
-# All tasks (page 1)
-curl http://localhost:3000/api/tasks
-
-# Page 2
-curl "http://localhost:3000/api/tasks?page=2"
-
-# Search by title
-curl "http://localhost:3000/api/tasks?search=report"
-
-# Filter active (incomplete) tasks
-curl "http://localhost:3000/api/tasks?status=active"
-
-# Combined search + filter + pagination
-curl "http://localhost:3000/api/tasks?search=report&status=active&page=1&limit=5"
+curl http://localhost:4000/api/tasks
+curl "http://localhost:4000/api/tasks?page=2"
+curl "http://localhost:4000/api/tasks?search=report"
+curl "http://localhost:4000/api/tasks?status=active"
+curl "http://localhost:4000/api/tasks?search=report&status=active&page=1&limit=5"
 ```
 
 ### GET /api/tasks/:id
@@ -205,7 +247,7 @@ curl "http://localhost:3000/api/tasks?search=report&status=active&page=1&limit=5
 Returns a single task by ID.
 
 ```bash
-curl http://localhost:3000/api/tasks/1
+curl http://localhost:4000/api/tasks/1
 ```
 
 ### POST /api/tasks
@@ -219,6 +261,8 @@ Creates a new task.
   "dueDate": "2026-08-15"
 }
 ```
+
+`title` is required (non-empty after trim). Returns **201** with the created task.
 
 ### PUT /api/tasks/:id
 
@@ -235,7 +279,7 @@ Fully updates a task.
 
 ### PATCH /api/tasks/:id
 
-Partially updates a task (toggle completion).
+Partially updates a task (commonly used for toggle).
 
 ```json
 {
@@ -248,16 +292,18 @@ Partially updates a task (toggle completion).
 Deletes a task.
 
 ```bash
-curl -X DELETE http://localhost:3000/api/tasks/1
+curl -X DELETE http://localhost:4000/api/tasks/1
 ```
 
 ### Error Responses
 
-| Status | Meaning              |
-| ------ | -------------------- |
-| 400    | Invalid input        |
-| 404    | Task not found       |
-| 500    | Internal server error |
+| Status | Meaning |
+|---|---|
+| 400 | Invalid input (missing title, invalid ID, wrong type) |
+| 404 | Task not found |
+| 500 | Internal server error |
+
+Error bodies follow `{ "error": "Human-readable message" }`.
 
 ## Database Schema
 
@@ -275,13 +321,31 @@ model Task {
 
 ## Scripts
 
-| Command                    | Description                     |
-| -------------------------- | ------------------------------- |
-| `npm run dev`              | Start development server        |
-| `npm run build`            | Build for production            |
-| `npm start`                | Start production server         |
-| `npm run lint`             | Run ESLint                      |
-| `npx prisma migrate dev`   | Create and apply migrations     |
-| `npx prisma db seed`       | Seed the database               |
-| `npx prisma studio`        | Open Prisma Studio (GUI)        |
-| `npx prisma generate`      | Regenerate Prisma Client        |
+### Root
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start both server (:4000) and client (:3000) |
+| `npm run dev:server` | Start Express server only |
+| `npm run dev:client` | Start Next.js client only |
+| `npm run install:all` | Install deps for both server and client |
+
+### Server (`server/`)
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start dev server with hot reload (tsx watch) |
+| `npm run start` | Start production server |
+| `npm run db:migrate` | Create and apply Prisma migrations |
+| `npm run db:seed` | Seed the database |
+| `npm run db:studio` | Open Prisma Studio (GUI) |
+| `npm run db:generate` | Regenerate Prisma Client |
+
+### Client (`client/`)
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Start Next.js dev server (port 3000) |
+| `npm run build` | Build for production |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint |
