@@ -35,3 +35,16 @@ export interface PaginatedResponse {
   limit: number
   totalPages: number
 }
+
+// Prisma returns Date objects at runtime even if its types say string
+export function toTask(t: Record<string, unknown>): Task {
+  return {
+    id: t.id as number,
+    title: t.title as string,
+    description: (t.description as string | null) ?? null,
+    completed: t.completed as boolean,
+    dueDate: t.dueDate instanceof Date ? (t.dueDate as Date).toISOString() : null,
+    createdAt: (t.createdAt as Date).toISOString(),
+    updatedAt: (t.updatedAt as Date).toISOString(),
+  }
+}

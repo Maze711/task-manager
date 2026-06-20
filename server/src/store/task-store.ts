@@ -1,4 +1,4 @@
-import { prisma } from "../config/database"
+import { db as prisma } from "../config/database"
 
 export async function findMany(skip: number, take: number, where: Record<string, unknown>) {
   return prisma.task.findMany({
