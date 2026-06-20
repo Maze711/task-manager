@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import toast from "react-hot-toast"
 import { apiMethods } from "../api"
 import { API_URL } from "../constant"
 
@@ -68,7 +69,11 @@ export function useCreateTask() {
       return res.data
     },
     onSuccess: () => {
+      toast.success("Task created")
       queryClient.invalidateQueries({ queryKey: ["tasks"] })
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to create task")
     },
   })
 }
@@ -81,8 +86,12 @@ export function useUpdateTask() {
       return res.data
     },
     onSuccess: () => {
+      toast.success("Task updated")
       queryClient.invalidateQueries({ queryKey: ["tasks"] })
       queryClient.invalidateQueries({ queryKey: ["task"] })
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to update task")
     },
   })
 }
@@ -107,7 +116,11 @@ export function useDeleteTask() {
       await apiMethods.delete(`${API_URL}/tasks/${id}`)
     },
     onSuccess: () => {
+      toast.success("Task deleted")
       queryClient.invalidateQueries({ queryKey: ["tasks"] })
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Failed to delete task")
     },
   })
 }
