@@ -29,7 +29,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-slate-50 font-sans antialiased">
         <Providers>
           {children}
-          <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
+          <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
         </Providers>
       </body>
     </html>
