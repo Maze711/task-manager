@@ -120,7 +120,7 @@ export default function Home() {
             initialData={{
               title: editingTask.title,
               description: editingTask.description ?? "",
-              dueDate: editingTask.dueDate ? editingTask.dueDate.split("T")[0] : "",
+              dueDate: editingTask.dueDate ? editingTask.dueDate.slice(0, 16) : "",
             }}
             onSubmit={handleUpdate}
             isSubmitting={updateTask.isPending}

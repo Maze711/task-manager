@@ -13,11 +13,10 @@ type TaskCardProps = {
 export default function TaskCard({ task, onToggle, onEdit, onDeleteClick }: TaskCardProps) {
   function formatDate(dateStr: string | null) {
     if (!dateStr) return null
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    })
+    const d = new Date(dateStr)
+    const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    const time = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
+    return `${date} at ${time}`
   }
 
   return (

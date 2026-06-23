@@ -82,7 +82,7 @@ export default function TaskForm({ initialData, onSubmit, isSubmitting = false, 
         </label>
         <input
           id="dueDate"
-          type="date"
+          type="datetime-local"
           value={dueDate}
           onChange={(e) => setDueDate(e.target.value)}
           className="mt-1 block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"

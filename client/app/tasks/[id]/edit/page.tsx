@@ -66,7 +66,7 @@ export default function EditTaskPage() {
           initialData={{
             title: task.title,
             description: task.description ?? "",
-            dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
+            dueDate: task.dueDate ? task.dueDate.slice(0, 16) : "",
           }}
           onSubmit={handleSubmit}
           isSubmitting={updateTask.isPending}

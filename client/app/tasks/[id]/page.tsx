@@ -48,12 +48,10 @@ export default function TaskDetailPage() {
 
   function formatDate(dateStr: string | null) {
     if (!dateStr) return null
-    return new Date(dateStr).toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-      year: "numeric",
-    })
+    const d = new Date(dateStr)
+    const date = d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+    const time = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
+    return `${date} at ${time}`
   }
 
   if (isLoading) {
@@ -157,7 +155,7 @@ export default function TaskDetailPage() {
           initialData={{
             title: task.title,
             description: task.description ?? "",
-            dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
+            dueDate: task.dueDate ? task.dueDate.slice(0, 16) : "",
           }}
           onSubmit={handleUpdate}
           isSubmitting={updateTask.isPending}
