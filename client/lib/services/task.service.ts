@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import toast from "react-hot-toast"
+import { toast } from "sonner"
 import { apiMethods } from "../api"
 import { API_URL } from "../constant"
+import { useRef } from "react"
 
 export type FilterStatus = "all" | "active" | "inactive"
 
@@ -111,11 +112,39 @@ export function useToggleTask() {
 
 export function useDeleteTask() {
   const queryClient = useQueryClient()
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   return useMutation({
     mutationFn: async (id: number) => {
-      await apiMethods.delete(`${API_URL}/tasks/${id}`)
+      const DURATION = 5000;
+
+      return new Promise<{ cancelled: boolean }>((resolve, reject) => {
+        const toastId = toast.loading("Deleting task...", {
+          duration: Infinity,
+          action: {
+            label: "Undo",
+            onClick: () => {
+              clearTimeout(toastTimer.current!)
+              toast.dismiss(toastId)
+              resolve({ cancelled: true })
+            },
+          },
+        })
+
+        toastTimer.current = setTimeout(async () => {
+          try {
+            await apiMethods.delete(`${API_URL}/tasks/${id}`)
+            toast.dismiss(toastId)
+            resolve({ cancelled: false })
+          } catch (error) {
+            toast.dismiss(toastId)
+            reject(error)
+          }
+        }, DURATION)
+      })
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      if (result.cancelled) return
       toast.success("Task deleted")
       queryClient.invalidateQueries({ queryKey: ["tasks"] })
     },
