@@ -2,11 +2,13 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import LabelPicker from "./LabelPicker"
 
 type TaskFormData = {
   title: string
   description: string
   dueDate: string
+  labelIds: number[]
 }
 
 type TaskFormProps = {
@@ -20,9 +22,12 @@ export default function TaskForm({ initialData, onSubmit, isSubmitting = false, 
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
 
+  const initialDateTime = initialData?.dueDate ?? ""
+  const [dueDate, setDueDate] = useState(initialDateTime.slice(0, 10) || "")
+  const [dueTime, setDueTime] = useState(initialDateTime.slice(11, 16) || "")
   const [title, setTitle] = useState(initialData?.title ?? "")
   const [description, setDescription] = useState(initialData?.description ?? "")
-  const [dueDate, setDueDate] = useState(initialData?.dueDate ?? "")
+  const [labelIds, setLabelIds] = useState<number[]>(initialData?.labelIds ?? [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -33,8 +38,10 @@ export default function TaskForm({ initialData, onSubmit, isSubmitting = false, 
       return
     }
 
+    const combinedDueDate = dueDate ? (dueTime ? `${dueDate}T${dueTime}` : dueDate) : ""
+
     try {
-      await onSubmit({ title: title.trim(), description: description.trim(), dueDate })
+      await onSubmit({ title: title.trim(), description: description.trim(), dueDate: combinedDueDate, labelIds })
     } catch {
       setError("Something went wrong. Please try again.")
     }
@@ -76,17 +83,33 @@ export default function TaskForm({ initialData, onSubmit, isSubmitting = false, 
         />
       </div>
 
-      <div>
-        <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700">
-          Due Date
-        </label>
-        <input
-          id="dueDate"
-          type="datetime-local"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          className="mt-1 block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        />
+      <LabelPicker selectedIds={labelIds} onChange={setLabelIds} />
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700">
+            Due Date
+          </label>
+          <input
+            id="dueDate"
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            className="mt-1 block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label htmlFor="dueTime" className="block text-sm font-medium text-gray-700">
+            Due Time
+          </label>
+          <input
+            id="dueTime"
+            type="time"
+            value={dueTime}
+            onChange={(e) => setDueTime(e.target.value)}
+            className="mt-1 block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          />
+        </div>
       </div>
 
       <div className="flex items-center gap-3">

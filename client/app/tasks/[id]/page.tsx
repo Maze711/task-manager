@@ -26,7 +26,7 @@ export default function TaskDetailPage() {
     await toggleTask.mutateAsync({ id: task.id, completed: !task.completed })
   }
 
-  async function handleUpdate(data: { title: string; description: string; dueDate: string }) {
+  async function handleUpdate(data: { title: string; description: string; dueDate: string; labelIds: number[] }) {
     if (!task) return
     await updateTask.mutateAsync({
       id: task.id,
@@ -35,6 +35,7 @@ export default function TaskDetailPage() {
         description: data.description || undefined,
         completed: task.completed,
         dueDate: data.dueDate || undefined,
+        labelIds: data.labelIds,
       },
     })
     setShowEditModal(false)
@@ -107,6 +108,20 @@ export default function TaskDetailPage() {
               <p className="mt-3 leading-relaxed text-gray-600">{task.description}</p>
             )}
 
+            {task.labels.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {task.labels.map((label) => (
+                  <span
+                    key={label.id}
+                    className="inline-block rounded-full px-3 py-1 text-xs font-medium text-white"
+                    style={{ backgroundColor: label.color }}
+                  >
+                    {label.name}
+                  </span>
+                ))}
+              </div>
+            )}
+
             <div className="mt-6 space-y-2 text-sm text-gray-500">
               {task.dueDate && (
                 <p>
@@ -155,7 +170,8 @@ export default function TaskDetailPage() {
           initialData={{
             title: task.title,
             description: task.description ?? "",
-            dueDate: task.dueDate ? task.dueDate.slice(0, 16) : "",
+            dueDate: task.dueDate ?? "",
+            labelIds: task.labels.map((l) => l.id),
           }}
           onSubmit={handleUpdate}
           isSubmitting={updateTask.isPending}

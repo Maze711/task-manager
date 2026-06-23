@@ -55,6 +55,20 @@ export default function TaskCard({ task, onToggle, onEdit, onDeleteClick }: Task
             <p className="mt-1 line-clamp-2 text-sm text-gray-500">{task.description}</p>
           )}
 
+          {task.labels.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {task.labels.map((label) => (
+                <span
+                  key={label.id}
+                  className="inline-block rounded-full px-2 py-0.5 text-xs font-medium text-white"
+                  style={{ backgroundColor: label.color }}
+                >
+                  {label.name}
+                </span>
+              ))}
+            </div>
+          )}
+
           <div className="mt-2 flex items-center gap-3 text-xs text-gray-400">
             {task.dueDate && (
               <span className="flex items-center gap-1">

@@ -12,11 +12,28 @@ datasource db {
 }
 
 model Task {
-  id          Int       @id @default(autoincrement())
+  id          Int         @id @default(autoincrement())
   title       String
   description String?
-  completed   Boolean   @default(false)
+  completed   Boolean     @default(false)
   dueDate     DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  labels      TaskLabel[]
+}
+
+model Label {
+  id    Int         @id @default(autoincrement())
+  name  String      @unique
+  color String      @default("#6366f1")
+  tasks TaskLabel[]
+}
+
+model TaskLabel {
+  taskId  Int
+  labelId Int
+  task    Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  label   Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, labelId])
 }

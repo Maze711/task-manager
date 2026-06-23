@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import toast from "react-hot-toast"
 import { apiMethods } from "../api"
 import { API_URL } from "../constant"
+import type { Label } from "./label.service"
 
 export type FilterStatus = "all" | "active" | "inactive"
 
@@ -13,6 +14,7 @@ export interface Task {
   dueDate: string | null
   createdAt: string
   updatedAt: string
+  labels: Label[]
 }
 
 export interface PaginatedResponse {
@@ -27,6 +29,7 @@ export interface CreateTaskPayload {
   title: string
   description?: string
   dueDate?: string
+  labelIds?: number[]
 }
 
 export interface UpdateTaskPayload {
@@ -34,16 +37,31 @@ export interface UpdateTaskPayload {
   description?: string
   completed?: boolean
   dueDate?: string
+  labelIds?: number[]
 }
 
-export function useTasks(search?: string, status?: FilterStatus, page?: number) {
+export function useTasks(
+  search?: string,
+  status?: FilterStatus,
+  page?: number,
+  dateFrom?: string,
+  dateTo?: string,
+  timeFrom?: string,
+  timeTo?: string,
+  labelId?: number
+) {
   return useQuery<PaginatedResponse>({
-    queryKey: ["tasks", search, status, page],
+    queryKey: ["tasks", search, status, page, dateFrom, dateTo, timeFrom, timeTo, labelId],
     queryFn: async () => {
       const params: Record<string, string> = {}
       if (search) params.search = search
       if (status && status !== "all") params.status = status
       if (page && page > 1) params.page = String(page)
+      if (dateFrom) params.dueDateFrom = dateFrom
+      if (dateTo) params.dueDateTo = dateTo
+      if (timeFrom) params.dueTimeFrom = timeFrom
+      if (timeTo) params.dueTimeTo = timeTo
+      if (labelId) params.labelId = String(labelId)
       const res = await apiMethods.get<PaginatedResponse>(`${API_URL}/tasks`, { params })
       return res.data
     },

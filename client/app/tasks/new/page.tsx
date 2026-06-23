@@ -9,11 +9,12 @@ export default function NewTaskPage() {
   const router = useRouter()
   const createTask = useCreateTask()
 
-  async function handleSubmit(data: { title: string; description: string; dueDate: string }) {
+  async function handleSubmit(data: { title: string; description: string; dueDate: string; labelIds: number[] }) {
     await createTask.mutateAsync({
       title: data.title,
       description: data.description || undefined,
       dueDate: data.dueDate || undefined,
+      labelIds: data.labelIds,
     })
     router.push("/")
   }
