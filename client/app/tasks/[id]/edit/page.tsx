@@ -13,7 +13,7 @@ export default function EditTaskPage() {
   const { data: task, isLoading, error } = useTask(id)
   const updateTask = useUpdateTask()
 
-  async function handleSubmit(data: { title: string; description: string; dueDate: string; labelIds: number[] }) {
+  async function handleSubmit(data: { title: string; description: string; dueDate: string }) {
     if (!task) return
     await updateTask.mutateAsync({
       id: task.id,
@@ -22,7 +22,6 @@ export default function EditTaskPage() {
         description: data.description || undefined,
         completed: task.completed,
         dueDate: data.dueDate || undefined,
-        labelIds: data.labelIds,
       },
     })
     router.push("/")
@@ -68,7 +67,6 @@ export default function EditTaskPage() {
             title: task.title,
             description: task.description ?? "",
             dueDate: task.dueDate ?? "",
-            labelIds: task.labels.map((l) => l.id),
           }}
           onSubmit={handleSubmit}
           isSubmitting={updateTask.isPending}

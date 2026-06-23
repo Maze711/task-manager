@@ -47,7 +47,7 @@ export function setupSwagger(app: Express, port: number) {
         },
       },
     },
-    apis: ["./backend/src/routes/*.ts"],
+    apis: ["./src/routes/*.ts"],
   }
 
   const swaggerSpec = swaggerJSDoc(options)

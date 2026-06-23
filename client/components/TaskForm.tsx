@@ -2,13 +2,11 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import LabelPicker from "./LabelPicker"
 
 type TaskFormData = {
   title: string
   description: string
   dueDate: string
-  labelIds: number[]
 }
 
 type TaskFormProps = {
@@ -22,12 +20,11 @@ export default function TaskForm({ initialData, onSubmit, isSubmitting = false, 
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
 
-  const initialDateTime = initialData?.dueDate ?? ""
-  const [dueDate, setDueDate] = useState(initialDateTime.slice(0, 10) || "")
-  const [dueTime, setDueTime] = useState(initialDateTime.slice(11, 16) || "")
+  const initialDate = initialData?.dueDate ? new Date(initialData.dueDate) : null
   const [title, setTitle] = useState(initialData?.title ?? "")
   const [description, setDescription] = useState(initialData?.description ?? "")
-  const [labelIds, setLabelIds] = useState<number[]>(initialData?.labelIds ?? [])
+  const [dueDate, setDueDate] = useState(initialDate ? initialDate.toLocaleDateString("en-CA") : "")
+  const [dueTime, setDueTime] = useState(initialDate ? initialDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }) : "")
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -38,10 +35,14 @@ export default function TaskForm({ initialData, onSubmit, isSubmitting = false, 
       return
     }
 
-    const combinedDueDate = dueDate ? (dueTime ? `${dueDate}T${dueTime}` : dueDate) : ""
+    let combinedDueDate = ""
+    if (dueDate) {
+      const d = dueTime ? new Date(`${dueDate}T${dueTime}`) : new Date(`${dueDate}T00:00:00`)
+      combinedDueDate = d.toISOString()
+    }
 
     try {
-      await onSubmit({ title: title.trim(), description: description.trim(), dueDate: combinedDueDate, labelIds })
+      await onSubmit({ title: title.trim(), description: description.trim(), dueDate: combinedDueDate })
     } catch {
       setError("Something went wrong. Please try again.")
     }
@@ -82,8 +83,6 @@ export default function TaskForm({ initialData, onSubmit, isSubmitting = false, 
           placeholder="Enter task description (optional)"
         />
       </div>
-
-      <LabelPicker selectedIds={labelIds} onChange={setLabelIds} />
 
       <div className="grid grid-cols-2 gap-4">
         <div>

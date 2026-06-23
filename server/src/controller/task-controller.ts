@@ -7,22 +7,11 @@ export async function getAll(req: Request, res: Response, next: NextFunction) {
     const status = req.query.status as string | undefined
     const page = req.query.page ? Number(req.query.page) : undefined
     const limit = req.query.limit ? Number(req.query.limit) : undefined
-    const dueDateFrom = req.query.dueDateFrom as string | undefined
-    const dueDateTo = req.query.dueDateTo as string | undefined
-    const dueTimeFrom = req.query.dueTimeFrom as string | undefined
-    const dueTimeTo = req.query.dueTimeTo as string | undefined
-    const labelId = req.query.labelId ? Number(req.query.labelId) : undefined
-
     const result = await taskService.listTasks({
       search: search?.trim(),
       status: status as "active" | "inactive" | undefined,
       page,
       limit,
-      dueDateFrom,
-      dueDateTo,
-      dueTimeFrom,
-      dueTimeTo,
-      labelId,
     })
 
     res.json(result)
@@ -53,7 +42,7 @@ export async function getById(req: Request, res: Response, next: NextFunction) {
 
 export async function create(req: Request, res: Response, next: NextFunction) {
   try {
-    const { title, description, dueDate, labelIds } = req.body
+    const { title, description, dueDate } = req.body
 
     if (!title || typeof title !== "string" || !title.trim()) {
       res.status(400).json({ error: "Title is required" })
@@ -64,7 +53,6 @@ export async function create(req: Request, res: Response, next: NextFunction) {
       title,
       description: typeof description === "string" ? description : undefined,
       dueDate: typeof dueDate === "string" ? dueDate : undefined,
-      labelIds: Array.isArray(labelIds) ? labelIds : undefined,
     })
 
     res.status(201).json(task)
@@ -81,7 +69,7 @@ export async function update(req: Request, res: Response, next: NextFunction) {
       return
     }
 
-    const { title, description, completed, dueDate, labelIds } = req.body
+    const { title, description, completed, dueDate } = req.body
 
     if (title !== undefined && (typeof title !== "string" || !title.trim())) {
       res.status(400).json({ error: "Title is required" })
@@ -93,7 +81,6 @@ export async function update(req: Request, res: Response, next: NextFunction) {
       description: typeof description === "string" ? description : undefined,
       completed: typeof completed === "boolean" ? completed : undefined,
       dueDate: typeof dueDate === "string" ? dueDate : undefined,
-      labelIds: Array.isArray(labelIds) ? labelIds : undefined,
     })
 
     if (!task) {
