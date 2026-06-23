@@ -19,13 +19,18 @@ export async function listTasks(filters: TaskFilters): Promise<PaginatedResponse
     where.completed = true
   }
 
-  const dateFilter: Prisma.DateTimeNullableFilter = {}
+  const startDateFilter: Prisma.DateTimeNullableFilter = {}
+  if (filters.startDateFrom) startDateFilter.gte = new Date(filters.startDateFrom)
+  if (filters.startDateTo) startDateFilter.lte = new Date(filters.startDateTo)
+  if (filters.startDateFrom || filters.startDateTo) {
+    where.startDate = startDateFilter
+  }
 
-  if (filters.dueDateFrom) dateFilter.gte = new Date(filters.dueDateFrom)
-  if (filters.dueDateTo) dateFilter.lte = new Date(filters.dueDateTo)
-
-  if (filters.dueDateFrom || filters.dueDateTo) {
-    where.dueDate = dateFilter
+  const endDateFilter: Prisma.DateTimeNullableFilter = {}
+  if (filters.endDateFrom) endDateFilter.gte = new Date(filters.endDateFrom)
+  if (filters.endDateTo) endDateFilter.lte = new Date(filters.endDateTo)
+  if (filters.endDateFrom || filters.endDateTo) {
+    where.endDate = endDateFilter
   }
 
   const [tasks, total] = await Promise.all([
@@ -42,6 +47,11 @@ export async function listTasks(filters: TaskFilters): Promise<PaginatedResponse
   }
 }
 
+export async function listTitles(): Promise<string[]> {
+  const rows = await taskStore.findTitles()
+  return rows.map((r: { title: string }) => r.title)
+}
+
 export async function getTask(id: number): Promise<Task | null> {
   const task = await taskStore.findById(id)
   return task ? toTask(task) : null
@@ -50,14 +60,14 @@ export async function getTask(id: number): Promise<Task | null> {
 export async function createTask(data: {
   title: string
   description?: string
-  dueDate?: string
+  startDate?: string
+  endDate?: string
 }): Promise<Task> {
-  const dueDate = data.dueDate ? new Date(data.dueDate) : undefined
-
   const task = await taskStore.create({
     title: data.title.trim(),
     description: data.description?.trim() || undefined,
-    dueDate,
+    startDate: data.startDate ? new Date(data.startDate) : undefined,
+    endDate: data.endDate ? new Date(data.endDate) : undefined,
   })
 
   return toTask(task)
@@ -69,7 +79,8 @@ export async function updateTask(
     title?: string
     description?: string
     completed?: boolean
-    dueDate?: string
+    startDate?: string
+    endDate?: string | null
   }
 ): Promise<Task | null> {
   const existing = await taskStore.findById(id)
@@ -80,7 +91,8 @@ export async function updateTask(
   if (data.title !== undefined) updateData.title = data.title.trim()
   if (data.description !== undefined) updateData.description = data.description.trim() || null
   if (data.completed !== undefined) updateData.completed = data.completed
-  if (data.dueDate !== undefined) updateData.dueDate = data.dueDate ? new Date(data.dueDate) : null
+  if (data.startDate !== undefined) updateData.startDate = data.startDate ? new Date(data.startDate) : null
+  if (data.endDate !== undefined) updateData.endDate = data.endDate ? new Date(data.endDate) : null
 
   const task = await taskStore.update(id, updateData)
   return toTask(task)

@@ -26,7 +26,7 @@ export default function TaskDetailPage() {
     await toggleTask.mutateAsync({ id: task.id, completed: !task.completed })
   }
 
-  async function handleUpdate(data: { title: string; description: string; dueDate: string }) {
+  async function handleUpdate(data: { title: string; description: string; startDate: string; endDate: string }) {
     if (!task) return
     await updateTask.mutateAsync({
       id: task.id,
@@ -34,7 +34,8 @@ export default function TaskDetailPage() {
         title: data.title,
         description: data.description || undefined,
         completed: task.completed,
-        dueDate: data.dueDate || undefined,
+        startDate: data.startDate || undefined,
+        endDate: data.endDate || undefined,
       },
     })
     setShowEditModal(false)
@@ -108,9 +109,14 @@ export default function TaskDetailPage() {
             )}
 
             <div className="mt-6 space-y-2 text-sm text-gray-500">
-              {task.dueDate && (
+              {task.startDate && (
                 <p>
-                  <span className="font-medium text-gray-700">Due:</span> {formatDate(task.dueDate)}
+                  <span className="font-medium text-gray-700">Start:</span> {formatDate(task.startDate)}
+                </p>
+              )}
+              {task.endDate && (
+                <p>
+                  <span className="font-medium text-gray-700">End:</span> {formatDate(task.endDate)}
                 </p>
               )}
             </div>
@@ -155,7 +161,8 @@ export default function TaskDetailPage() {
           initialData={{
             title: task.title,
             description: task.description ?? "",
-            dueDate: task.dueDate ?? "",
+            startDate: task.startDate ?? "",
+            endDate: task.endDate ?? "",
           }}
           onSubmit={handleUpdate}
           isSubmitting={updateTask.isPending}

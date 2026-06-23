@@ -1,7 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import SearchBar from "@/components/SearchBar"
+import { useState, useCallback } from "react"
 import FilterBar from "@/components/FilterBar"
 import TaskList from "@/components/TaskList"
 import TaskForm from "@/components/TaskForm"
@@ -10,45 +9,67 @@ import Pagination from "@/components/Pagination"
 import { useTasks, useCreateTask, useUpdateTask, useToggleTask, useDeleteTask } from "@/lib/services/task.service"
 import type { Task, FilterStatus } from "@/lib/services/task.service"
 
+function combineDateAndTime(date: string, time: string): string {
+  if (!date) return ""
+  const d = time ? new Date(`${date}T${time}`) : new Date(`${date}T00:00:00`)
+  return d.toISOString()
+}
+
 export default function Home() {
-  const [search, setSearch] = useState("")
+  const [title, setTitle] = useState("")
   const [status, setStatus] = useState<FilterStatus>("all")
   const [page, setPage] = useState(1)
+
+  const [startDate, setStartDate] = useState("")
+  const [startDateTime, setStartDateTime] = useState("")
+  const [endDate, setEndDate] = useState("")
+  const [endDateTime, setEndDateTime] = useState("")
 
   const [showNewModal, setShowNewModal] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [deletingTask, setDeletingTask] = useState<Task | null>(null)
 
-  const { data, isLoading, error } = useTasks(search, status, page)
+  const { data, isLoading, error } = useTasks({
+    search: title || undefined,
+    status,
+    page,
+    startDateFrom: combineDateAndTime(startDate, startDateTime) || undefined,
+    endDateTo: combineDateAndTime(endDate, endDateTime) || undefined,
+  })
   const createTask = useCreateTask()
   const updateTask = useUpdateTask()
   const toggleTask = useToggleTask()
   const deleteTask = useDeleteTask()
 
-  function handleSearchChange(val: string) {
-    setSearch(val)
+  function resetPage() {
     setPage(1)
+  }
+
+  function handleTitleChange(val: string) {
+    setTitle(val)
+    resetPage()
   }
 
   function handleStatusChange(val: FilterStatus) {
     setStatus(val)
-    setPage(1)
+    resetPage()
   }
 
   function handleToggle(id: number, completed: boolean) {
     toggleTask.mutate({ id, completed })
   }
 
-  async function handleCreate(data: { title: string; description: string; dueDate: string }) {
+  async function handleCreate(data: { title: string; description: string; startDate: string; endDate: string }) {
     await createTask.mutateAsync({
       title: data.title,
       description: data.description || undefined,
-      dueDate: data.dueDate || undefined,
+      startDate: data.startDate || undefined,
+      endDate: data.endDate || undefined,
     })
     setShowNewModal(false)
   }
 
-  async function handleUpdate(data: { title: string; description: string; dueDate: string }) {
+  async function handleUpdate(data: { title: string; description: string; startDate: string; endDate: string }) {
     if (!editingTask) return
     await updateTask.mutateAsync({
       id: editingTask.id,
@@ -56,7 +77,8 @@ export default function Home() {
         title: data.title,
         description: data.description || undefined,
         completed: editingTask.completed,
-        dueDate: data.dueDate || undefined,
+        startDate: data.startDate || undefined,
+        endDate: data.endDate || undefined,
       },
     })
     setEditingTask(null)
@@ -67,6 +89,18 @@ export default function Home() {
     await deleteTask.mutateAsync(deletingTask.id)
     setDeletingTask(null)
   }
+
+  const handleClearFilters = useCallback(() => {
+    setTitle("")
+    setStatus("all")
+    setStartDate("")
+    setStartDateTime("")
+    setEndDate("")
+    setEndDateTime("")
+    resetPage()
+  }, [])
+
+  const hasActiveFilters = !!(title || startDate || endDate)
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -87,11 +121,30 @@ export default function Home() {
         </button>
       </header>
 
-      <div className="mb-6 space-y-4 sm:flex sm:items-center sm:gap-4 sm:space-y-0">
-        <div className="flex-1">
-          <SearchBar value={search} onChange={handleSearchChange} />
+      <div className="mb-6 space-y-4">
+        <div className="flex items-center gap-4">
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={handleClearFilters}
+              className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50"
+            >
+              Clear filters
+            </button>
+          )}
         </div>
-        <FilterBar value={status} onChange={handleStatusChange} />
+        <FilterBar
+          title={title}
+          onTitleChange={handleTitleChange}
+          status={status}
+          onStatusChange={handleStatusChange}
+          startDate={startDate}
+          startDateTime={startDateTime}
+          onStartDateChange={(d, t) => { setStartDate(d); setStartDateTime(t); resetPage() }}
+          endDate={endDate}
+          endDateTime={endDateTime}
+          onEndDateChange={(d, t) => { setEndDate(d); setEndDateTime(t); resetPage() }}
+        />
       </div>
 
       <TaskList
@@ -124,7 +177,8 @@ export default function Home() {
             initialData={{
               title: editingTask.title,
               description: editingTask.description ?? "",
-              dueDate: editingTask.dueDate ?? "",
+              startDate: editingTask.startDate ?? "",
+              endDate: editingTask.endDate ?? "",
             }}
             onSubmit={handleUpdate}
             isSubmitting={updateTask.isPending}

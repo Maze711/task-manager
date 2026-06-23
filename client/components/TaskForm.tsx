@@ -2,11 +2,14 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import DatePicker from "./DatePicker"
+import TimePicker from "./TimePicker"
 
 type TaskFormData = {
   title: string
   description: string
-  dueDate: string
+  startDate: string
+  endDate: string
 }
 
 type TaskFormProps = {
@@ -20,11 +23,30 @@ export default function TaskForm({ initialData, onSubmit, isSubmitting = false, 
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
 
-  const initialDate = initialData?.dueDate ? new Date(initialData.dueDate) : null
+  function extractDate(iso: string | undefined | null): string {
+    if (!iso) return ""
+    const d = new Date(iso)
+    return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-CA")
+  }
+
+  function extractTime(iso: string | undefined | null): string {
+    if (!iso) return ""
+    const d = new Date(iso)
+    return isNaN(d.getTime()) ? "" : d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false })
+  }
+
   const [title, setTitle] = useState(initialData?.title ?? "")
   const [description, setDescription] = useState(initialData?.description ?? "")
-  const [dueDate, setDueDate] = useState(initialDate ? initialDate.toLocaleDateString("en-CA") : "")
-  const [dueTime, setDueTime] = useState(initialDate ? initialDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false }) : "")
+  const [startDate, setStartDate] = useState(extractDate(initialData?.startDate))
+  const [startTime, setStartTime] = useState(extractTime(initialData?.startDate))
+  const [endDate, setEndDate] = useState(extractDate(initialData?.endDate))
+  const [endTime, setEndTime] = useState(extractTime(initialData?.endDate))
+
+  function combineDateAndTime(date: string, time: string): string {
+    if (!date) return ""
+    const d = time ? new Date(`${date}T${time}`) : new Date(`${date}T00:00:00`)
+    return d.toISOString()
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -35,14 +57,13 @@ export default function TaskForm({ initialData, onSubmit, isSubmitting = false, 
       return
     }
 
-    let combinedDueDate = ""
-    if (dueDate) {
-      const d = dueTime ? new Date(`${dueDate}T${dueTime}`) : new Date(`${dueDate}T00:00:00`)
-      combinedDueDate = d.toISOString()
-    }
-
     try {
-      await onSubmit({ title: title.trim(), description: description.trim(), dueDate: combinedDueDate })
+      await onSubmit({
+        title: title.trim(),
+        description: description.trim(),
+        startDate: combineDateAndTime(startDate, startTime),
+        endDate: combineDateAndTime(endDate, endTime),
+      })
     } catch {
       setError("Something went wrong. Please try again.")
     }
@@ -85,30 +106,13 @@ export default function TaskForm({ initialData, onSubmit, isSubmitting = false, 
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700">
-            Due Date
-          </label>
-          <input
-            id="dueDate"
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className="mt-1 block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label htmlFor="dueTime" className="block text-sm font-medium text-gray-700">
-            Due Time
-          </label>
-          <input
-            id="dueTime"
-            type="time"
-            value={dueTime}
-            onChange={(e) => setDueTime(e.target.value)}
-            className="mt-1 block w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-        </div>
+        <DatePicker value={startDate} onChange={setStartDate} label="Start Date" placeholder="Pick start date" />
+        <TimePicker value={startTime} onChange={setStartTime} label="Start Time" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <DatePicker value={endDate} onChange={setEndDate} label="End Date" placeholder="Pick end date" />
+        <TimePicker value={endTime} onChange={setEndTime} label="End Time" />
       </div>
 
       <div className="flex items-center gap-3">
