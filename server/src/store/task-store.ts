@@ -13,11 +13,19 @@ export async function count(where: Record<string, unknown>) {
   return prisma.task.count({ where })
 }
 
+export async function findTitles() {
+  return prisma.task.findMany({
+    select: { title: true },
+    distinct: ["title"],
+    orderBy: { title: "asc" },
+  })
+}
+
 export async function findById(id: number) {
   return prisma.task.findUnique({ where: { id } })
 }
 
-export async function create(data: { title: string; description?: string; dueDate?: Date }) {
+export async function create(data: { title: string; description?: string; startDate?: Date; endDate?: Date }) {
   return prisma.task.create({ data })
 }
 

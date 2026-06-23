@@ -3,7 +3,8 @@ export interface Task {
   title: string
   description: string | null
   completed: boolean
-  dueDate: string | null
+  startDate: string | null
+  endDate: string | null
   createdAt: string
   updatedAt: string
 }
@@ -11,14 +12,16 @@ export interface Task {
 export interface CreateTaskInput {
   title: string
   description?: string
-  dueDate?: string
+  startDate?: string
+  endDate?: string
 }
 
 export interface UpdateTaskInput {
   title?: string
   description?: string
   completed?: boolean
-  dueDate?: string
+  startDate?: string
+  endDate?: string | null
 }
 
 export interface TaskFilters {
@@ -26,8 +29,10 @@ export interface TaskFilters {
   status?: "active" | "inactive"
   page?: number
   limit?: number
-  dueDateFrom?: string
-  dueDateTo?: string
+  startDateFrom?: string
+  startDateTo?: string
+  endDateFrom?: string
+  endDateTo?: string
 }
 
 export interface PaginatedResponse {
@@ -45,7 +50,8 @@ export function toTask(t: Record<string, unknown>): Task {
     title: t.title as string,
     description: (t.description as string | null) ?? null,
     completed: t.completed as boolean,
-    dueDate: t.dueDate instanceof Date ? (t.dueDate as Date).toISOString() : null,
+    startDate: t.startDate instanceof Date ? (t.startDate as Date).toISOString() : null,
+    endDate: t.endDate instanceof Date ? (t.endDate as Date).toISOString() : null,
     createdAt: (t.createdAt as Date).toISOString(),
     updatedAt: (t.updatedAt as Date).toISOString(),
   }

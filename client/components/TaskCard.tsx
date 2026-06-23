@@ -55,13 +55,21 @@ export default function TaskCard({ task, onToggle, onEdit, onDeleteClick }: Task
             <p className="mt-1 line-clamp-2 text-sm text-gray-500">{task.description}</p>
           )}
 
-          <div className="mt-2 flex items-center gap-3 text-xs text-gray-400">
-            {task.dueDate && (
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-gray-400">
+            {task.startDate && (
               <span className="flex items-center gap-1">
                 <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                {formatDate(task.dueDate)}
+                Start: {formatDate(task.startDate)}
+              </span>
+            )}
+            {task.endDate && (
+              <span className="flex items-center gap-1">
+                <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                End: {formatDate(task.endDate)}
               </span>
             )}
           </div>

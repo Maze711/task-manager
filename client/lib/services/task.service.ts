@@ -11,7 +11,8 @@ export interface Task {
   title: string
   description: string | null
   completed: boolean
-  dueDate: string | null
+  startDate: string | null
+  endDate: string | null
   createdAt: string
   updatedAt: string
 }
@@ -27,24 +28,41 @@ export interface PaginatedResponse {
 export interface CreateTaskPayload {
   title: string
   description?: string
-  dueDate?: string
+  startDate?: string
+  endDate?: string
 }
 
 export interface UpdateTaskPayload {
   title?: string
   description?: string
   completed?: boolean
-  dueDate?: string
+  startDate?: string
+  endDate?: string | null
 }
 
-export function useTasks(search?: string, status?: FilterStatus, page?: number) {
+export interface TaskFilters {
+  search?: string
+  status?: FilterStatus
+  page?: number
+  startDateFrom?: string
+  startDateTo?: string
+  endDateFrom?: string
+  endDateTo?: string
+}
+
+export function useTasks(filters?: TaskFilters) {
+  const { search, status, page, startDateFrom, startDateTo, endDateFrom, endDateTo } = filters ?? {}
   return useQuery<PaginatedResponse>({
-    queryKey: ["tasks", search, status, page],
+    queryKey: ["tasks", filters],
     queryFn: async () => {
       const params: Record<string, string> = {}
       if (search) params.search = search
       if (status && status !== "all") params.status = status
       if (page && page > 1) params.page = String(page)
+      if (startDateFrom) params.startDateFrom = startDateFrom
+      if (startDateTo) params.startDateTo = startDateTo
+      if (endDateFrom) params.endDateFrom = endDateFrom
+      if (endDateTo) params.endDateTo = endDateTo
       const res = await apiMethods.get<PaginatedResponse>(`${API_URL}/tasks`, { params })
       return res.data
     },
@@ -59,6 +77,17 @@ export function useTask(id: number) {
       return res.data
     },
     enabled: !!id,
+  })
+}
+
+export function useTaskTitles() {
+  return useQuery<string[]>({
+    queryKey: ["task-titles"],
+    queryFn: async () => {
+      const res = await apiMethods.get<string[]>(`${API_URL}/tasks/titles`)
+      return res.data
+    },
+    staleTime: 60_000,
   })
 }
 

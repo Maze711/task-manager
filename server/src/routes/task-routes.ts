@@ -58,6 +58,7 @@ const router = Router()
  *                   type: integer
  */
 router.get("/", taskController.getAll)
+router.get("/titles", taskController.getTitles)
 
 /**
  * @openapi
@@ -103,7 +104,10 @@ router.get("/:id", taskController.getById)
  *                 type: string
  *               description:
  *                 type: string
- *               dueDate:
+ *               startDate:
+ *                 type: string
+ *                 format: date
+ *               endDate:
  *                 type: string
  *                 format: date
  *     responses:
@@ -139,7 +143,10 @@ router.post("/", taskController.create)
  *                 type: string
  *               completed:
  *                 type: boolean
- *               dueDate:
+ *               startDate:
+ *                 type: string
+ *                 format: date
+ *               endDate:
  *                 type: string
  *                 format: date
  *     responses:
